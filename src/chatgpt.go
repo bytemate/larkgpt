@@ -30,9 +30,15 @@ func ChatGPTRequest(msg string, userID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if resp.StatusCode() == 429 {
+		return "ChatGPT 访问过于频繁, 请稍后再试.", err
+	}
 	response := resp.Result().(*ChatGPTResponse)
-	if response.Response == "" {
+	if response.Response == "" && resp.Size() == 0 {
 		return "", err
 	}
-	return response.Response, nil
+	if response != nil {
+		return response.Response, nil
+	}
+	return "", err
 }
