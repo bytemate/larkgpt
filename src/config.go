@@ -14,6 +14,7 @@ type AppConfig struct {
 	// ChatGPT
 	ChatGPTAPIKey string
 	ChatGPTAPIURL string
+	Maintained    bool
 }
 
 var Config AppConfig
@@ -28,5 +29,6 @@ func init() {
 		AppSecret:     os.Getenv("APP_SECRET"),
 		ChatGPTAPIKey: os.Getenv("CHATGPT_API_KEY"),
 		ChatGPTAPIURL: os.Getenv("CHATGPT_API_URL"),
+		Maintained:    os.Getenv("MAINTAINED") == "true",
 	}
 }

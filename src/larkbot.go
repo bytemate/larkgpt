@@ -27,6 +27,38 @@ func filterMsg(msg string) string {
 	}
 	return msg
 }
+func ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMessageReceiveV1) error {
+	log.Print("Receive message: ", msg)
+	if Config.Maintained {
+		_, _, err := cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT Bot 正在维护中 请稍后重试.请飞书搜索 ChatGPT 讨论群, 选择同款头像进群看进度.")
+		if err != nil {
+			log.Println("LarkAPI 调用失败 请稍后重试. ", err)
+		}
+		return nil
+	}
+	var result string
+	var err error
+	if event.Message.ChatType == "p2p" {
+		result, err = ChatGPTRequest(msg, event.Sender.SenderID.OpenID)
+	} else {
+		result, err = ChatGPTOneTimeRequest(msg)
+	}
+	log.Println("msg: ", msg, "result: ", result)
+	if err != nil {
+		log.Println("ChatGPT 请求失败 请稍后重试. ", err)
+		_, _, err := cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT 请求失败 请稍后重试.")
+		if err != nil {
+			log.Println("LarkAPI 调用失败 请稍后重试. ", err)
+		}
+		return nil
+	}
+	_, _, err = cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), result)
+	if err != nil {
+		log.Println("LarkAPI 调用失败 请稍后重试. ", err)
+	}
+	return nil
+}
+
 func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
 	content, err := lark.UnwrapMessageContent(event.Message.MessageType, event.Message.Content)
 	if err != nil {
@@ -45,24 +77,6 @@ func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *
 	if isNonsense(msg) {
 		return "", nil
 	}
-	go func() {
-		log.Print("Receive message: ", msg)
-		result, err := ChatGPTRequest(msg, event.Sender.SenderID.OpenID)
-		log.Println("msg: ", msg, "result: ", result)
-		if err != nil {
-			_, _, err = cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT Bot 调用失败 请稍后重试. "+"error: "+err.Error())
-			if err != nil {
-				log.Println("LarkAPI 调用失败 请稍后重试. ", err)
-			}
-		} else {
-			_, _, err = cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), result)
-			if err != nil {
-				_, _, err = cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT Bot 调用失败 请稍后重试. ")
-				if err != nil {
-					log.Println("LarkAPI 调用失败 请稍后重试. ", err)
-				}
-			}
-		}
-	}()
+	go ReciverChatGPTMessage(msg, cli, event)
 	return "", err
 }

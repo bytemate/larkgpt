@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/juju/ratelimit v1.0.1 // indirect
 	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
