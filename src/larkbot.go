@@ -58,7 +58,26 @@ func ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMess
 	}
 	return nil
 }
+func ReceiveCommandMessage(
+	command string,
+	cli *lark.Lark,
+	event *lark.EventV2IMMessageReceiveV1,
+) {
+	switch command {
+	case "/reset":
+		err := DeleteSession(
+			event.Sender.SenderID.OpenID,
+		)
+		if err != nil {
+			cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Reset Failed.")
+			return
+		}
+		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Reset Success.")
+	default:
+		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Unknown Command.")
+	}
 
+}
 func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
 	content, err := lark.UnwrapMessageContent(event.Message.MessageType, event.Message.Content)
 	if err != nil {
@@ -77,6 +96,11 @@ func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *
 	if isNonsense(msg) {
 		return "", nil
 	}
-	go ReciverChatGPTMessage(msg, cli, event)
+	switch true {
+	case strings.HasPrefix(msg, "/"):
+		go ReceiveCommandMessage(msg, cli, event)
+	default:
+		go ReciverChatGPTMessage(msg, cli, event)
+	}
 	return "", err
 }
