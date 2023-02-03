@@ -1,7 +1,7 @@
-package chatgpt
+package larkgpt
 
 type IMetrics interface {
-	// chatgpt api
+	// larkgpt api
 	EmitChatGPTApiFailed()
 	EmitChatGPTApiSuccess()
 
