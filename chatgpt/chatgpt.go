@@ -10,18 +10,28 @@ import (
 )
 
 type chatGPTClient struct {
-	apiHost string
-	apiKey  string
+	apiHost    string
+	apiKey     string
+	metricsIns IMetrics
 }
 
-func newChatGPTClient(apiHost, apiKey string) *chatGPTClient {
+func newChatGPTClient(apiHost, apiKey string, metricsIns IMetrics) *chatGPTClient {
 	return &chatGPTClient{
-		apiHost: apiHost,
-		apiKey:  apiKey,
+		apiHost:    apiHost,
+		apiKey:     apiKey,
+		metricsIns: metricsIns,
 	}
 }
 
-func (r *chatGPTClient) ChatGPTRequest(msg string, userID string) (string, error) {
+func (r *chatGPTClient) ChatGPTRequest(msg string, userID string) (result string, err error) {
+	defer func() {
+		if err != nil {
+			r.metricsIns.EmitChatGPTApiFailed()
+		} else {
+			r.metricsIns.EmitChatGPTApiSuccess()
+		}
+	}()
+
 	client := resty.New()
 	resp, err := client.R().
 		SetHeaders(
@@ -53,10 +63,18 @@ func (r *chatGPTClient) ChatGPTRequest(msg string, userID string) (string, error
 	return "", err
 }
 
-func (r *chatGPTClient) ChatGPTOneTimeRequest(msg string) (string, error) {
+func (r *chatGPTClient) ChatGPTOneTimeRequest(msg string) (result string, err error) {
+	defer func() {
+		if err != nil {
+			r.metricsIns.EmitChatGPTApiFailed()
+		} else {
+			r.metricsIns.EmitChatGPTApiSuccess()
+		}
+	}()
+
 	client := resty.New()
 	var resp *resty.Response
-	err := retry.Do(
+	err = retry.Do(
 		func() error {
 			var err error
 			resp, err = client.R().
@@ -99,7 +117,15 @@ func (r *chatGPTClient) ChatGPTOneTimeRequest(msg string) (string, error) {
 	return "", err
 }
 
-func (r *chatGPTClient) DeleteSession(userID string) error {
+func (r *chatGPTClient) DeleteSession(userID string) (err error) {
+	defer func() {
+		if err != nil {
+			r.metricsIns.EmitChatGPTApiFailed()
+		} else {
+			r.metricsIns.EmitChatGPTApiSuccess()
+		}
+	}()
+
 	client := resty.New()
 	resp, err := client.R().
 		SetHeaders(
