@@ -11,7 +11,7 @@ type Client struct {
 	larkIns                   *larkClient
 	chatGPTIns                *chatGPTClient
 	metricsIns                IMetrics
-	serverPort                int
+	serverPort                string
 	maintained                bool
 	enableSessionForLarkGroup bool
 }
@@ -27,7 +27,7 @@ type ClientConfig struct {
 	Maintained    bool
 
 	// server
-	ServerPort                int
+	ServerPort                string
 	Metrics                   IMetrics
 	EnableSessionForLarkGroup bool // 给群聊的消息启动 session，session id 是消息的 root id
 }
@@ -45,9 +45,6 @@ func New(config *ClientConfig) *Client {
 	res.chatGPTIns = newChatGPTClient(config.ChatGPTAPIURL, config.ChatGPTAPIKey, res.metricsIns)
 
 	res.serverPort = config.ServerPort
-	if res.serverPort == 0 {
-		res.serverPort = 9726
-	}
 
 	res.maintained = config.Maintained
 	res.enableSessionForLarkGroup = config.EnableSessionForLarkGroup
@@ -62,6 +59,6 @@ func (r *Client) Start() error {
 		r.larkIns.cli.EventCallback.ListenCallback(req.Context(), req.Body, w)
 	})
 
-	fmt.Printf("start server: %d ...\n", r.serverPort)
-	return http.ListenAndServe(fmt.Sprintf(":%d", r.serverPort), nil)
+	fmt.Printf("start server: %s ...\n", r.serverPort)
+	return http.ListenAndServe(fmt.Sprint("[::]:", r.serverPort), nil)
 }
