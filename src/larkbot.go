@@ -58,7 +58,26 @@ func ReceiverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMes
 	}
 	return nil
 }
+func ReceiveCommandMessage(
+	command string,
+	cli *lark.Lark,
+	event *lark.EventV2IMMessageReceiveV1,
+) {
+	switch command {
+	case "/reset":
+		err := DeleteSession(
+			event.Sender.SenderID.OpenID,
+		)
+		if err != nil {
+			cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Reset Failed.")
+			return
+		}
+		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Reset Success.")
+	default:
+		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Unknown Command.")
+	}
 
+}
 func ReceiverMessage(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
 	content, err := lark.UnwrapMessageContent(event.Message.MessageType, event.Message.Content)
 	if err != nil {
@@ -68,6 +87,8 @@ func ReceiverMessage(ctx context.Context, cli *lark.Lark, schema string, header 
 	switch event.Message.MessageType {
 	case lark.MsgTypeText:
 		msg = content.Text.Text
+	case lark.MsgTypePost:
+		msg = wrapLarkPostMessageText(content)
 	default:
 		log.Println("暂不支持的消息类型.")
 		_, _, _ = cli.Message.Reply(event.Message.MessageID).SendText(ctx, "暂不支持的消息类型.")
@@ -77,6 +98,29 @@ func ReceiverMessage(ctx context.Context, cli *lark.Lark, schema string, header 
 	if isNonsense(msg) {
 		return "", nil
 	}
-	go ReciverChatGPTMessage(msg, cli, event)
+	switch true {
+	case strings.HasPrefix(msg, "/"):
+		go ReceiveCommandMessage(msg, cli, event)
+	default:
+		go ReciverChatGPTMessage(msg, cli, event)
+	}
 	return "", err
+}
+
+func wrapLarkPostMessageText(content *lark.MessageContent) string {
+	builder := new(strings.Builder)
+	for idx, postContentList := range content.Post.Content {
+		if idx != 0 {
+			builder.WriteString("\n")
+		}
+		for _, postContent := range postContentList {
+			switch postContent := postContent.(type) {
+			case lark.MessageContentPostLink:
+				builder.WriteString(postContent.Href)
+			case lark.MessageContentPostText:
+				builder.WriteString(postContent.Text)
+			}
+		}
+	}
+	return builder.String()
 }
