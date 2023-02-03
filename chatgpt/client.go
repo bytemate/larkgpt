@@ -8,8 +8,9 @@ import (
 )
 
 type Client struct {
-	larkIns    *lark.Lark
+	larkIns    *larkClient
 	chatGPTIns *chatGPTClient
+	metricsIns IMetrics
 	serverPort int
 	maintained bool
 }
@@ -26,14 +27,20 @@ type ClientConfig struct {
 
 	// server
 	ServerPort int
+	Metrics    IMetrics
 }
 
 func New(config *ClientConfig) *Client {
 	res := new(Client)
 
-	res.larkIns = lark.New(lark.WithAppCredential(config.AppID, config.AppSecret))
+	res.metricsIns = config.Metrics
+	if res.metricsIns == nil {
+		res.metricsIns = new(noneMetrics)
+	}
 
-	res.chatGPTIns = newChatGPTClient(config.ChatGPTAPIURL, config.ChatGPTAPIKey)
+	res.larkIns = newLarkClient(lark.New(lark.WithAppCredential(config.AppID, config.AppSecret)), res.metricsIns)
+
+	res.chatGPTIns = newChatGPTClient(config.ChatGPTAPIURL, config.ChatGPTAPIKey, res.metricsIns)
 
 	res.serverPort = config.ServerPort
 	if res.serverPort == 0 {
@@ -46,10 +53,10 @@ func New(config *ClientConfig) *Client {
 }
 
 func (r *Client) Start() error {
-	r.larkIns.EventCallback.HandlerEventV2IMMessageReceiveV1(r.ReciverMessage)
+	r.larkIns.cli.EventCallback.HandlerEventV2IMMessageReceiveV1(r.larkMessageReceiverHandler)
 
 	http.HandleFunc("/event", func(w http.ResponseWriter, req *http.Request) {
-		r.larkIns.EventCallback.ListenCallback(req.Context(), req.Body, w)
+		r.larkIns.cli.EventCallback.ListenCallback(req.Context(), req.Body, w)
 	})
 
 	fmt.Printf("start server: %d ...\n", r.serverPort)

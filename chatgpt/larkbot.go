@@ -23,17 +23,21 @@ func filterMsg(msg string) string {
 	return msg
 }
 
-func (r *Client) ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMessageReceiveV1) error {
+func (r *Client) ReceiveChatGPTMessage(ctx context.Context, msg string, event *lark.EventV2IMMessageReceiveV1) (err error) {
+	defer func() {
+		if err != nil {
+			r.metricsIns.EmitAppFailed()
+		} else {
+			r.metricsIns.EmitAppSuccess()
+		}
+	}()
+
 	log.Print("Receive message: ", msg)
 	if r.maintained {
-		_, _, err := cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT Bot 正在维护中 请稍后重试.请飞书搜索 ChatGPT 讨论群, 选择同款头像进群看进度.")
-		if err != nil {
-			log.Println("LarkAPI 调用失败 请稍后重试. ", err)
-		}
-		return nil
+		return r.larkIns.replyText(ctx, event.Message.MessageID, "ChatGPT Bot 正在维护中 请稍后重试.请飞书搜索 ChatGPT 讨论群, 选择同款头像进群看进度.")
 	}
+
 	var result string
-	var err error
 	if event.Message.ChatType == "p2p" {
 		result, err = r.chatGPTIns.ChatGPTRequest(msg, event.Sender.SenderID.OpenID)
 	} else {
@@ -42,40 +46,29 @@ func (r *Client) ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.E
 	log.Println("msg: ", msg, "result: ", result)
 	if err != nil {
 		log.Println("ChatGPT 请求失败 请稍后重试. ", err)
-		_, _, err := cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT 请求失败 请稍后重试.")
-		if err != nil {
-			log.Println("LarkAPI 调用失败 请稍后重试. ", err)
-		}
-		return nil
+		return r.larkIns.replyText(ctx, event.Message.MessageID, "ChatGPT 请求失败 请稍后重试.")
 	}
-	_, _, err = cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), result)
-	if err != nil {
-		log.Println("LarkAPI 调用失败 请稍后重试. ", err)
-	}
-	return nil
+
+	return r.larkIns.replyText(ctx, event.Message.MessageID, result)
 }
 
-func (r *Client) ReceiveCommandMessage(
-	command string,
-	cli *lark.Lark,
-	event *lark.EventV2IMMessageReceiveV1,
-) {
+func (r *Client) ReceiveCommandMessage(ctx context.Context, command string, event *lark.EventV2IMMessageReceiveV1) {
 	switch command {
 	case "/reset":
 		err := r.chatGPTIns.DeleteSession(
 			event.Sender.SenderID.OpenID,
 		)
 		if err != nil {
-			cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Reset Failed.")
+			r.larkIns.replyText(ctx, event.Message.MessageID, "Reset Failed.")
 			return
 		}
-		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Reset Success.")
+		r.larkIns.replyText(ctx, event.Message.MessageID, "Reset Success.")
 	default:
-		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Unknown Command.")
+		r.larkIns.replyText(ctx, event.Message.MessageID, "Unknown Command.")
 	}
 }
 
-func (r *Client) ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
+func (r *Client) larkMessageReceiverHandler(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
 	content, err := lark.UnwrapMessageContent(event.Message.MessageType, event.Message.Content)
 	if err != nil {
 		return "", err
@@ -88,7 +81,7 @@ func (r *Client) ReciverMessage(ctx context.Context, cli *lark.Lark, schema stri
 		msg = wrapLarkPostMessageText(content)
 	default:
 		log.Println("暂不支持的消息类型.")
-		_, _, _ = cli.Message.Reply(event.Message.MessageID).SendText(ctx, "暂不支持的消息类型.")
+		_ = r.larkIns.replyText(ctx, event.Message.MessageID, "暂不支持的消息类型.")
 		return "", nil
 	}
 	msg = filterMsg(msg)
@@ -97,9 +90,9 @@ func (r *Client) ReciverMessage(ctx context.Context, cli *lark.Lark, schema stri
 	}
 	switch true {
 	case strings.HasPrefix(msg, "/"):
-		go r.ReceiveCommandMessage(msg, cli, event)
+		go r.ReceiveCommandMessage(ctx, msg, event)
 	default:
-		go r.ReciverChatGPTMessage(msg, cli, event)
+		go r.ReceiveChatGPTMessage(ctx, msg, event)
 	}
 	return "", err
 }
