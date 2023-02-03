@@ -4,8 +4,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
-
 	"github.com/bytemate/larkgpt/larkgpt"
 )
 
@@ -22,15 +20,12 @@ func main() {
 }
 
 func loadConfig() (*larkgpt.ClientConfig, error) {
-	err := godotenv.Load(".env", "../.env")
-	if err != nil {
-		return nil, err
-	}
 	return &larkgpt.ClientConfig{
-		AppID:         os.Getenv("APP_ID"),
-		AppSecret:     os.Getenv("APP_SECRET"),
-		ChatGPTAPIKey: os.Getenv("CHATGPT_API_KEY"),
-		ChatGPTAPIURL: os.Getenv("CHATGPT_API_URL"),
-		Maintained:    os.Getenv("MAINTAINED") == "true",
+		AppID:                     os.Getenv("APP_ID"),
+		AppSecret:                 os.Getenv("APP_SECRET"),
+		ChatGPTAPIKey:             os.Getenv("CHATGPT_API_KEY"),
+		ChatGPTAPIURL:             os.Getenv("CHATGPT_API_URL"),
+		Maintained:                os.Getenv("MAINTAINED") == "true",
+		EnableSessionForLarkGroup: os.Getenv("ENABLE_SESSION_FOR_LARK_GROUP") == "true",
 	}, nil
 }
