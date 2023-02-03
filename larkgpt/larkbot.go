@@ -34,7 +34,7 @@ func (r *Client) ReceiveChatGPTMessage(ctx context.Context, msg string, event *l
 
 	log.Print("Receive message: ", msg)
 	if r.maintained {
-		return r.larkIns.replyText(ctx, event.Message.MessageID, "ChatGPT Bot 正在维护中 请稍后重试.请飞书搜索 ChatGPT 讨论群, 选择同款头像进群看进度.")
+		return r.larkIns.replyText(context.Background(), event.Message.MessageID, "ChatGPT Bot 正在维护中 请稍后重试.请飞书搜索 ChatGPT 讨论群, 选择同款头像进群看进度.")
 	}
 
 	var result string
@@ -47,10 +47,10 @@ func (r *Client) ReceiveChatGPTMessage(ctx context.Context, msg string, event *l
 	log.Println("msg: ", msg, "session", sessionID, "result: ", result)
 	if err != nil {
 		log.Println("ChatGPT 请求失败 请稍后重试. ", err)
-		return r.larkIns.replyText(ctx, event.Message.MessageID, "ChatGPT 请求失败 请稍后重试.")
+		return r.larkIns.replyText(context.Background(), event.Message.MessageID, "ChatGPT 请求失败 请稍后重试.")
 	}
 
-	return r.larkIns.replyText(ctx, event.Message.MessageID, result)
+	return r.larkIns.replyText(context.Background(), event.Message.MessageID, result)
 }
 
 func (r *Client) ReceiveCommandMessage(ctx context.Context, command string, event *lark.EventV2IMMessageReceiveV1) {
@@ -62,12 +62,12 @@ func (r *Client) ReceiveCommandMessage(ctx context.Context, command string, even
 			err = r.chatGPTIns.DeleteSession(sessionID)
 		}
 		if err != nil {
-			r.larkIns.replyText(ctx, event.Message.MessageID, "Reset Failed.")
+			r.larkIns.replyText(context.Background(), event.Message.MessageID, "Reset Failed.")
 			return
 		}
-		r.larkIns.replyText(ctx, event.Message.MessageID, "Reset Success.")
+		r.larkIns.replyText(context.Background(), event.Message.MessageID, "Reset Success.")
 	default:
-		r.larkIns.replyText(ctx, event.Message.MessageID, "Unknown Command.")
+		r.larkIns.replyText(context.Background(), event.Message.MessageID, "Unknown Command.")
 	}
 }
 
@@ -84,7 +84,7 @@ func (r *Client) larkMessageReceiverHandler(ctx context.Context, cli *lark.Lark,
 		msg = wrapLarkPostMessageText(content)
 	default:
 		log.Println("暂不支持的消息类型.")
-		_ = r.larkIns.replyText(ctx, event.Message.MessageID, "暂不支持的消息类型.")
+		_ = r.larkIns.replyText(context.Background(), event.Message.MessageID, "暂不支持的消息类型.")
 		return "", nil
 	}
 	msg = filterMsg(msg)

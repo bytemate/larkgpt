@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/bytemate/larkgpt/larkgpt"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -20,6 +21,7 @@ func main() {
 }
 
 func loadConfig() (*larkgpt.ClientConfig, error) {
+	godotenv.Load(".env", "../.env")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
