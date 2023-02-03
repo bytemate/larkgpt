@@ -87,6 +87,8 @@ func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *
 	switch event.Message.MessageType {
 	case lark.MsgTypeText:
 		msg = content.Text.Text
+	case lark.MsgTypePost:
+		msg = wrapLarkPostMessageText(content)
 	default:
 		log.Println("暂不支持的消息类型.")
 		_, _, _ = cli.Message.Reply(event.Message.MessageID).SendText(ctx, "暂不支持的消息类型.")
@@ -103,4 +105,22 @@ func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *
 		go ReciverChatGPTMessage(msg, cli, event)
 	}
 	return "", err
+}
+
+func wrapLarkPostMessageText(content *lark.MessageContent) string {
+	builder := new(strings.Builder)
+	for idx, postContentList := range content.Post.Content {
+		if idx != 0 {
+			builder.WriteString("\n")
+		}
+		for _, postContent := range postContentList {
+			switch postContent := postContent.(type) {
+			case lark.MessageContentPostLink:
+				builder.WriteString(postContent.Href)
+			case lark.MessageContentPostText:
+				builder.WriteString(postContent.Text)
+			}
+		}
+	}
+	return builder.String()
 }
