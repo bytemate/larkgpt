@@ -38,12 +38,13 @@ func (r *Client) ReceiveChatGPTMessage(ctx context.Context, msg string, event *l
 	}
 
 	var result string
-	if event.Message.ChatType == "p2p" {
-		result, err = r.chatGPTIns.ChatGPTRequest(msg, event.Sender.SenderID.OpenID)
+	sessionID := getLarkMessageSessionID(event, r.enableSessionForLarkGroup)
+	if sessionID != "" {
+		result, err = r.chatGPTIns.ChatGPTRequest(msg, sessionID)
 	} else {
 		result, err = r.chatGPTIns.ChatGPTOneTimeRequest(msg)
 	}
-	log.Println("msg: ", msg, "result: ", result)
+	log.Println("msg: ", msg, "session", sessionID, "result: ", result)
 	if err != nil {
 		log.Println("ChatGPT 请求失败 请稍后重试. ", err)
 		return r.larkIns.replyText(ctx, event.Message.MessageID, "ChatGPT 请求失败 请稍后重试.")
@@ -55,9 +56,11 @@ func (r *Client) ReceiveChatGPTMessage(ctx context.Context, msg string, event *l
 func (r *Client) ReceiveCommandMessage(ctx context.Context, command string, event *lark.EventV2IMMessageReceiveV1) {
 	switch command {
 	case "/reset":
-		err := r.chatGPTIns.DeleteSession(
-			event.Sender.SenderID.OpenID,
-		)
+		sessionID := getLarkMessageSessionID(event, r.enableSessionForLarkGroup)
+		var err error
+		if sessionID != "" {
+			err = r.chatGPTIns.DeleteSession(sessionID)
+		}
 		if err != nil {
 			r.larkIns.replyText(ctx, event.Message.MessageID, "Reset Failed.")
 			return
@@ -113,4 +116,18 @@ func wrapLarkPostMessageText(content *lark.MessageContent) string {
 		}
 	}
 	return builder.String()
+}
+
+func getLarkMessageSessionID(event *lark.EventV2IMMessageReceiveV1, enableSessionForLarkGroup bool) string {
+	if event.Message.ChatType == lark.ChatModeP2P {
+		return event.Sender.SenderID.OpenID
+	}
+	if !enableSessionForLarkGroup {
+		return ""
+	}
+	if event.Message.RootID == "" {
+		// 自己就是根消息
+		return event.Message.MessageID
+	}
+	return event.Message.RootID
 }

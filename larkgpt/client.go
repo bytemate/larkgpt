@@ -8,11 +8,12 @@ import (
 )
 
 type Client struct {
-	larkIns    *larkClient
-	chatGPTIns *chatGPTClient
-	metricsIns IMetrics
-	serverPort int
-	maintained bool
+	larkIns                   *larkClient
+	chatGPTIns                *chatGPTClient
+	metricsIns                IMetrics
+	serverPort                int
+	maintained                bool
+	enableSessionForLarkGroup bool
 }
 
 type ClientConfig struct {
@@ -26,8 +27,9 @@ type ClientConfig struct {
 	Maintained    bool
 
 	// server
-	ServerPort int
-	Metrics    IMetrics
+	ServerPort                int
+	Metrics                   IMetrics
+	EnableSessionForLarkGroup bool // 给群聊的消息启动 session，session id 是消息的 root id
 }
 
 func New(config *ClientConfig) *Client {
@@ -48,6 +50,7 @@ func New(config *ClientConfig) *Client {
 	}
 
 	res.maintained = config.Maintained
+	res.enableSessionForLarkGroup = config.EnableSessionForLarkGroup
 
 	return res
 }
