@@ -6,7 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/bytemate/larkgpt/chatgpt"
+	"github.com/bytemate/larkgpt/larkgpt"
 )
 
 func main() {
@@ -14,19 +14,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	client := chatgpt.New(config)
+	client := larkgpt.New(config)
 
 	if err := client.Start(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func loadConfig() (*chatgpt.ClientConfig, error) {
+func loadConfig() (*larkgpt.ClientConfig, error) {
 	err := godotenv.Load(".env", "../.env")
 	if err != nil {
 		return nil, err
 	}
-	return &chatgpt.ClientConfig{
+	return &larkgpt.ClientConfig{
 		AppID:         os.Getenv("APP_ID"),
 		AppSecret:     os.Getenv("APP_SECRET"),
 		ChatGPTAPIKey: os.Getenv("CHATGPT_API_KEY"),
