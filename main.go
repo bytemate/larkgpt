@@ -1,22 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 
-	"github.com/bytemate/larkgpt/src"
+	"github.com/joho/godotenv"
+
+	"github.com/bytemate/larkgpt/chatgpt"
 )
 
 func main() {
-	http.HandleFunc("/event", func(w http.ResponseWriter, r *http.Request) {
-		src.LarkServer.EventCallback.ListenCallback(r.Context(), r.Body, w)
-	})
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "9726"
+	config, err := loadConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
-	fmt.Println("start server ... ", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	client := chatgpt.New(config)
+
+	if err := client.Start(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func loadConfig() (*chatgpt.ClientConfig, error) {
+	err := godotenv.Load(".env", "../.env")
+	if err != nil {
+		return nil, err
+	}
+	return &chatgpt.ClientConfig{
+		AppID:         os.Getenv("APP_ID"),
+		AppSecret:     os.Getenv("APP_SECRET"),
+		ChatGPTAPIKey: os.Getenv("CHATGPT_API_KEY"),
+		ChatGPTAPIURL: os.Getenv("CHATGPT_API_URL"),
+		Maintained:    os.Getenv("MAINTAINED") == "true",
+	}, nil
 }

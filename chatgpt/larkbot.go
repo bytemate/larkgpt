@@ -1,4 +1,4 @@
-package src
+package chatgpt
 
 import (
 	"context"
@@ -8,17 +8,12 @@ import (
 	"github.com/chyroc/lark"
 )
 
-var LarkServer *lark.Lark
-
-func init() {
-	LarkServer = lark.New(lark.WithAppCredential(Config.AppID, Config.AppSecret))
-	LarkServer.EventCallback.HandlerEventV2IMMessageReceiveV1(ReciverMessage)
-}
 func isNonsense(msg string) bool {
 	// includee message
 	// msg include @_all
 	return strings.Contains(msg, "@_all") || msg == ""
 }
+
 func filterMsg(msg string) string {
 	// filter message
 	// msg include @_user_1
@@ -27,9 +22,10 @@ func filterMsg(msg string) string {
 	}
 	return msg
 }
-func ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMessageReceiveV1) error {
+
+func (r *Client) ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMessageReceiveV1) error {
 	log.Print("Receive message: ", msg)
-	if Config.Maintained {
+	if r.maintained {
 		_, _, err := cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "ChatGPT Bot 正在维护中 请稍后重试.请飞书搜索 ChatGPT 讨论群, 选择同款头像进群看进度.")
 		if err != nil {
 			log.Println("LarkAPI 调用失败 请稍后重试. ", err)
@@ -39,9 +35,9 @@ func ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMess
 	var result string
 	var err error
 	if event.Message.ChatType == "p2p" {
-		result, err = ChatGPTRequest(msg, event.Sender.SenderID.OpenID)
+		result, err = r.chatGPTIns.ChatGPTRequest(msg, event.Sender.SenderID.OpenID)
 	} else {
-		result, err = ChatGPTOneTimeRequest(msg)
+		result, err = r.chatGPTIns.ChatGPTOneTimeRequest(msg)
 	}
 	log.Println("msg: ", msg, "result: ", result)
 	if err != nil {
@@ -58,14 +54,15 @@ func ReciverChatGPTMessage(msg string, cli *lark.Lark, event *lark.EventV2IMMess
 	}
 	return nil
 }
-func ReceiveCommandMessage(
+
+func (r *Client) ReceiveCommandMessage(
 	command string,
 	cli *lark.Lark,
 	event *lark.EventV2IMMessageReceiveV1,
 ) {
 	switch command {
 	case "/reset":
-		err := DeleteSession(
+		err := r.chatGPTIns.DeleteSession(
 			event.Sender.SenderID.OpenID,
 		)
 		if err != nil {
@@ -76,9 +73,9 @@ func ReceiveCommandMessage(
 	default:
 		cli.Message.Reply(event.Message.MessageID).SendText(context.Background(), "Unknown Command.")
 	}
-
 }
-func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
+
+func (r *Client) ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *lark.EventHeaderV2, event *lark.EventV2IMMessageReceiveV1) (string, error) {
 	content, err := lark.UnwrapMessageContent(event.Message.MessageType, event.Message.Content)
 	if err != nil {
 		return "", err
@@ -100,9 +97,9 @@ func ReciverMessage(ctx context.Context, cli *lark.Lark, schema string, header *
 	}
 	switch true {
 	case strings.HasPrefix(msg, "/"):
-		go ReceiveCommandMessage(msg, cli, event)
+		go r.ReceiveCommandMessage(msg, cli, event)
 	default:
-		go ReciverChatGPTMessage(msg, cli, event)
+		go r.ReciverChatGPTMessage(msg, cli, event)
 	}
 	return "", err
 }
