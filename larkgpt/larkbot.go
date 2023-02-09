@@ -8,11 +8,26 @@ import (
 	"github.com/chyroc/lark"
 )
 
-func isNonsense(msg string) bool {
+func isNonsense(content *lark.MessageContent, msg string) bool {
+	if content != nil && content.Post != nil {
+		for _, list := range content.Post.Content {
+			for _, v := range list {
+				if atPost, ok := v.(lark.MessageContentPostAt); ok {
+					if atPost.UserID == larkAtAllText {
+						// msg include @_all, ignore
+						return false
+					}
+				}
+			}
+		}
+	}
+
 	// includee message
 	// msg include @_all
-	return strings.Contains(msg, "@_all") || msg == ""
+	return strings.Contains(msg, larkAtAllText) || msg == ""
 }
+
+const larkAtAllText = "@_all"
 
 func filterMsg(msg string) string {
 	// filter message
@@ -88,7 +103,7 @@ func (r *Client) larkMessageReceiverHandler(ctx context.Context, cli *lark.Lark,
 		return "", nil
 	}
 	msg = filterMsg(msg)
-	if isNonsense(msg) {
+	if isNonsense(content, msg) {
 		return "", nil
 	}
 	switch true {
