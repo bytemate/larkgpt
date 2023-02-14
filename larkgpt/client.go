@@ -18,8 +18,10 @@ type Client struct {
 
 type ClientConfig struct {
 	// Lark
-	AppID     string
-	AppSecret string
+	AppID           string
+	AppSecret       string
+	LarkOpenBaseURL string
+	LarkWWWBaseURL  string
 
 	// ChatGPT
 	ChatGPTAPIKey string
@@ -40,7 +42,16 @@ func New(config *ClientConfig) *Client {
 		res.metricsIns = new(noneMetrics)
 	}
 
-	res.larkIns = newLarkClient(lark.New(lark.WithAppCredential(config.AppID, config.AppSecret)), res.metricsIns)
+	larkOption := []lark.ClientOptionFunc{
+		lark.WithAppCredential(config.AppID, config.AppSecret),
+	}
+	if config.LarkOpenBaseURL != "" {
+		larkOption = append(larkOption, lark.WithOpenBaseURL(config.LarkOpenBaseURL))
+	}
+	if config.LarkWWWBaseURL != "" {
+		larkOption = append(larkOption, lark.WithWWWBaseURL(config.LarkWWWBaseURL))
+	}
+	res.larkIns = newLarkClient(lark.New(larkOption...), res.metricsIns)
 
 	res.chatGPTIns = newChatGPTClient(config.ChatGPTAPIURL, config.ChatGPTAPIKey, res.metricsIns)
 
