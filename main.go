@@ -4,8 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/bytemate/larkgpt/larkgpt"
 	"github.com/joho/godotenv"
+
+	"github.com/bytemate/larkgpt/larkgpt"
 )
 
 func main() {
@@ -30,6 +31,8 @@ func loadConfig() (*larkgpt.ClientConfig, error) {
 	return &larkgpt.ClientConfig{
 		AppID:                     os.Getenv("APP_ID"),
 		AppSecret:                 os.Getenv("APP_SECRET"),
+		LarkOpenBaseURL:           os.Getenv("LARK_OPEN_BASE_URL"), // default is https://open.feishu.cn, for larksuite, please use https://open.larksuite.com
+		LarkWWWBaseURL:            os.Getenv("LARK_WWW_BASE_URL"),  // default is https://www.feishu.cn, for larksuite, please use https://www.larksuite.com
 		ChatGPTAPIKey:             os.Getenv("CHATGPT_API_KEY"),
 		ChatGPTAPIURL:             os.Getenv("CHATGPT_API_URL"),
 		ServerPort:                port,
