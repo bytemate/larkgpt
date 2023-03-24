@@ -87,7 +87,7 @@ func (r *Client) larkMessageReceiverHandler(ctx context.Context, cli *lark.Lark,
 		_ = r.larkIns.replyText(context.Background(), event.Message.MessageID, "暂不支持的消息类型.")
 		return "", nil
 	}
-	msg = filterMsg(msg)
+	msg = strings.TrimSpace(filterMsg(msg))
 	if isNonsense(msg) {
 		return "", nil
 	}
