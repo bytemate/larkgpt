@@ -38,5 +38,6 @@ func loadConfig() (*larkgpt.ClientConfig, error) {
 		ServerPort:                port,
 		Maintained:                os.Getenv("MAINTAINED") == "true",
 		EnableSessionForLarkGroup: os.Getenv("ENABLE_SESSION_FOR_LARK_GROUP") == "true",
+		EnableCardResp:            os.Getenv("ENABLE_CARD_RESP") == "true",
 	}, nil
 }
