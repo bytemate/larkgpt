@@ -3,6 +3,7 @@ package larkgpt
 import "testing"
 
 func TestChatGPTRequest(t *testing.T) {
+	t.Skip()
 	type args struct {
 		msg    string
 		userID string

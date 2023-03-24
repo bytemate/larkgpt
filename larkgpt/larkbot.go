@@ -105,7 +105,7 @@ func (r *Client) larkMessageReceiverHandler(ctx context.Context, cli *lark.Lark,
 		return "", nil // 无法重试
 	}
 	msg = strings.TrimSpace(filterMsg(msg))
-	if isNonsense(msg) {
+	if isNonsense(content, msg) {
 		return "", nil
 	}
 	switch true {
