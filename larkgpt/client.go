@@ -14,6 +14,7 @@ type Client struct {
 	serverPort                string
 	maintained                bool
 	enableSessionForLarkGroup bool
+	enableCardResp            bool
 }
 
 type ClientConfig struct {
@@ -30,6 +31,7 @@ type ClientConfig struct {
 	ServerPort                string
 	Metrics                   IMetrics
 	EnableSessionForLarkGroup bool // 给群聊的消息启动 session，session id 是消息的 root id
+	EnableCardResp            bool // 以飞书卡片消息的形式回复消息
 }
 
 func New(config *ClientConfig) *Client {
@@ -45,9 +47,9 @@ func New(config *ClientConfig) *Client {
 	res.chatGPTIns = newChatGPTClient(config.ChatGPTAPIURL, config.ChatGPTAPIKey, res.metricsIns)
 
 	res.serverPort = config.ServerPort
-
 	res.maintained = config.Maintained
 	res.enableSessionForLarkGroup = config.EnableSessionForLarkGroup
+	res.enableCardResp = config.EnableCardResp
 
 	return res
 }
