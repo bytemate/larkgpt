@@ -104,8 +104,8 @@ func (r *Client) larkMessageReceiverHandler(ctx context.Context, cli *lark.Lark,
 		_ = r.replyChatGPTError(event.Message.MessageID, "暂不支持的消息类型.")
 		return "", nil // 无法重试
 	}
-	msg = filterMsg(msg)
-	if isNonsense(content, msg) {
+	msg = strings.TrimSpace(filterMsg(msg))
+	if isNonsense(msg) {
 		return "", nil
 	}
 	switch true {
