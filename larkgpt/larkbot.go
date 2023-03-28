@@ -61,8 +61,10 @@ func (r *Client) ReceiveChatGPTMessage(ctx context.Context, msg string, event *l
 	}
 	log.Println("msg: ", msg, "session", sessionID, "result: ", result)
 	if err != nil {
-		log.Println("ChatGPT 请求失败 请稍后重试. ", err)
-		return r.replyChatGPTError(event.Message.MessageID, "ChatGPT 请求失败 请稍后重试.")
+		log.Println("ChatGPT 请求失败, 请稍后重试. ", err)
+		return r.replyChatGPTError(event.Message.MessageID, "ChatGPT 请求失败, 请稍后重试.")
+	} else if strings.TrimSpace(result) == "" {
+		return r.replyChatGPTError(event.Message.MessageID, "ChatGPT 请求失败, 请稍后重试.")
 	}
 
 	return r.larkIns.replyChatGPTMessage(event.Message.MessageID, msg, result, r.enableCardResp)
